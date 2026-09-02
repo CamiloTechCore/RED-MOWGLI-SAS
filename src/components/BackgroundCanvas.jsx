@@ -17,7 +17,7 @@ export default function BackgroundCanvas() {
     };
     window.addEventListener('resize', handleResize);
 
-    const numNodes = 40;
+    const numNodes = 300;
     const nodes = [];
 
     for (let i = 0; i < numNodes; i++) {
