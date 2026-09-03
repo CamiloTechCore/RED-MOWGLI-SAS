@@ -10,6 +10,11 @@ export default function Gallery() {
     'Imagen4.jpg',
     'Imagen5.jpg',
     'Imagen6.jpg',
+    'Imagen7.jpg',
+    'Imagen8.jpg',
+    'Imagen9.jpg',
+    'Imagen10.jpg',
+    'Imagen11.jpg',
     'moneda1millon.gif',
   ];
 
