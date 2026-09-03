@@ -6,7 +6,7 @@ export default function SurveyForm() {
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const scriptURL = 'https://script.google.com/macros/s/AKfycbx-0hfmoceC9T_0uuGi6WU4-tFbIou8g4ftFF5KEJ5eN5vieRoTF5i1tTVUPmA3_eczYw/exec'; 
+  const scriptURL = 'https://script.google.com/macros/s/AKfycby4Acnk3Ai089QYo8eBLLp-DOgkwCyhm4DXzENJbf8pKX-9y-HK29YgDP25IzzRslzYdw/exec'; 
 
   const handleSubmit = async (actionType) => {
     setLoading(true);
