@@ -9,11 +9,13 @@ export default function Blog() {
   // Estado para mostrar u ocultar todos los comentarios
   const [showAllComments, setShowAllComments] = useState(true);
   
-  // Referencias para la funcionalidad de Arrastrar y Soltar (Drag & Drop)
+  // NUEVO: Estados para manejar las animaciones de los botones
+  const [postStatus, setPostStatus] = useState('idle'); // Para el botón de "Nueva Lista"
+  const [commentStatus, setCommentStatus] = useState({}); // Para los botones de comentarios por ID
+
   const dragItem = useRef();
   const dragOverItem = useRef();
 
-  // URL de tu base de datos en Google Sheets
   const scriptURL = 'https://script.google.com/macros/s/AKfycby4Acnk3Ai089QYo8eBLLp-DOgkwCyhm4DXzENJbf8pKX-9y-HK29YgDP25IzzRslzYdw/exec';
 
   useEffect(() => {
@@ -44,8 +46,12 @@ export default function Blog() {
     }
   };
 
-  const handleCreatePost = () => {
+  // Función actualizada con animaciones para Crear Post
+  const handleCreatePost = async () => {
     if (newPostText.trim() === '' || newPostText.length > 250) return;
+    
+    setPostStatus('loading'); // Inicia animación de carga
+
     const newPost = {
       id: Date.now().toString(),
       text: newPostText,
@@ -53,9 +59,14 @@ export default function Blog() {
       comments: []
     };
     const updatedPosts = [newPost, ...posts];
+    
     setPosts(updatedPosts);
     setNewPostText('');
-    saveToServer(updatedPosts);
+    
+    await saveToServer(updatedPosts); // Espera a que se guarde en Sheets
+    
+    setPostStatus('success'); // Muestra éxito
+    setTimeout(() => setPostStatus('idle'), 2000); // Restaura tras 2 segundos
   };
 
   const toggleReaction = (postId, reactionType) => {
@@ -73,18 +84,31 @@ export default function Blog() {
     saveToServer(updatedPosts);
   };
 
-  const handleAddComment = (postId) => {
+  // Función actualizada con animaciones para Agregar Comentario
+  const handleAddComment = async (postId) => {
     const commentText = commentInputs[postId];
     if (!commentText || commentText.trim() === '' || commentText.length > 100) return;
+
+    // Inicia animación solo en el botón de este post específico
+    setCommentStatus(prev => ({ ...prev, [postId]: 'loading' }));
+
     const updatedPosts = posts.map(post => {
       if (post.id === postId) {
         return { ...post, comments: [...post.comments, { id: Date.now().toString(), text: commentText }] };
       }
       return post;
     });
+    
     setPosts(updatedPosts);
     setCommentInputs({ ...commentInputs, [postId]: '' });
-    saveToServer(updatedPosts);
+    
+    await saveToServer(updatedPosts); // Espera a que se guarde
+
+    // Muestra éxito y restaura
+    setCommentStatus(prev => ({ ...prev, [postId]: 'success' }));
+    setTimeout(() => {
+      setCommentStatus(prev => ({ ...prev, [postId]: 'idle' }));
+    }, 2000);
   };
 
   const handleSort = () => {
@@ -106,7 +130,6 @@ export default function Blog() {
   return (
     <div className="w-full h-full flex flex-col gap-2">
       
-      {/* Botón superior para ocultar/mostrar comentarios */}
       <div className="flex justify-end px-4 mt-2">
         <button 
           onClick={() => setShowAllComments(!showAllComments)}
@@ -116,18 +139,13 @@ export default function Blog() {
         </button>
       </div>
 
-      {/* Contenedor de publicaciones: 
-        flex-col (móviles) -> Vertical
-        md:flex-row (escritorio) -> Horizontal 
-      */}
       <div className="w-full min-h-[70vh] flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-4 py-4 px-4 overflow-x-hidden md:overflow-x-auto custom-scrollbar pb-10">
         
         {/* Columna 1 fija: Crear nueva publicación */}
-        {/* w-full en móviles, w-80 en escritorio */}
         <div className="w-full max-w-md md:max-w-none md:w-80 shrink-0 bg-white/30 backdrop-blur-md border border-white/40 p-4 rounded-2xl shadow-xl">
           <h2 className="text-titulo font-bold mb-3">Nueva Lista (Post)</h2>
           <textarea
-            maxLength={350}
+            maxLength={250}
             value={newPostText}
             onChange={(e) => setNewPostText(e.target.value)}
             placeholder="Escribe tu publicación aquí..."
@@ -135,9 +153,17 @@ export default function Blog() {
             rows="4"
           />
           <div className="flex justify-between items-center mt-2">
-            <span className="text-xs font-semibold text-textoNormal/80">{newPostText.length}/350</span>
-            <button onClick={handleCreatePost} className="bg-titulo text-white px-4 py-2 rounded-xl font-semibold shadow-lg hover:opacity-90 transition-opacity">
-              Añadir
+            <span className="text-xs font-semibold text-textoNormal/80">{newPostText.length}/250</span>
+            <button 
+              onClick={handleCreatePost} 
+              disabled={postStatus === 'loading'}
+              // Lógica de estilos y colores dependiendo del estado
+              className={`px-4 py-2 rounded-xl text-sm font-semibold text-white shadow-md transition-all ${
+                postStatus === 'loading' ? 'bg-gray-400 cursor-not-allowed animate-pulse' : 
+                postStatus === 'success' ? 'bg-green-500' : 'bg-titulo hover:opacity-90'
+              }`}
+            >
+              {postStatus === 'loading' ? 'Publicando...' : postStatus === 'success' ? '¡Enviado!' : 'Añadir'}
             </button>
           </div>
         </div>
@@ -145,6 +171,7 @@ export default function Blog() {
         {/* Columnas dinámicas de publicaciones */}
         {posts.map((post, index) => {
           const reacts = post.reactions || { love: post.liked || 0, happy: 0, sad: 0, excited: 0, angry: 0, custom: 0 };
+          const currentStatus = commentStatus[post.id] || 'idle'; // Lee el estado de esta tarjeta en particular
 
           return (
             <div 
@@ -154,7 +181,6 @@ export default function Blog() {
               onDragEnter={() => (dragOverItem.current = index)}
               onDragEnd={handleSort}
               onDragOver={(e) => e.preventDefault()}
-              // Tarjeta adaptable: w-full max-w-md en móviles, w-80 en escritorio
               className="w-full max-w-md md:max-w-none md:w-80 shrink-0 bg-white/20 backdrop-blur-md border border-white/30 p-4 rounded-2xl shadow-lg flex flex-col gap-3 cursor-grab active:cursor-grabbing"
             >
               <div className="flex justify-between items-center border-b border-white/20 pb-2 mb-1">
@@ -188,7 +214,6 @@ export default function Blog() {
                 </button>
               </div>
 
-              {/* Si showAllComments es verdadero, renderizamos esta sección */}
               {showAllComments && (
                 <div className="flex flex-col gap-2 mt-2">
                   <div className="flex flex-col gap-2 bg-white/10 p-2 rounded-xl border border-white/20 shadow-inner flex-1 overflow-y-auto max-h-60 custom-scrollbar">
@@ -206,14 +231,24 @@ export default function Blog() {
                   <div className="flex flex-col gap-2 pt-2 border-t border-white/20">
                     <input 
                       type="text"
-                      maxLength={150}
+                      maxLength={100}
                       placeholder="Añadir tarjeta..."
                       value={commentInputs[post.id] || ''}
                       onChange={(e) => setCommentInputs({ ...commentInputs, [post.id]: e.target.value })}
                       className="w-full bg-white/50 text-xs py-2 px-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-titulo placeholder-textoNormal/60"
                     />
-                    <button onClick={() => handleAddComment(post.id)} className="bg-inicioParrafo text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:opacity-90 w-full shadow-md">
-                      Añadir
+                    
+                    {/* Botón de añadir comentario animado */}
+                    <button 
+                      onClick={() => handleAddComment(post.id)} 
+                      disabled={currentStatus === 'loading'}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold text-white w-full shadow-md transition-all duration-300 ${
+                        currentStatus === 'loading' ? 'bg-gray-400 cursor-not-allowed animate-pulse' :
+                        currentStatus === 'success' ? 'bg-green-500' : 'bg-inicioParrafo hover:opacity-90'
+                      }`}
+                    >
+                      {currentStatus === 'loading' ? 'Comentando...' : 
+                       currentStatus === 'success' ? 'Comentario enviado' : 'Añadir'}
                     </button>
                   </div>
                 </div>
