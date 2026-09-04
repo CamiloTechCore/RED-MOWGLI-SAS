@@ -1,15 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 export default function Blog() {
   const [posts, setPosts] = useState([]);
   const [newPostText, setNewPostText] = useState('');
   const [commentInputs, setCommentInputs] = useState({});
   const [loading, setLoading] = useState(true);
+  
+  // Estado para mostrar u ocultar todos los comentarios
+  const [showAllComments, setShowAllComments] = useState(true);
+  
+  // Referencias para la funcionalidad de Arrastrar y Soltar (Drag & Drop)
+  const dragItem = useRef();
+  const dragOverItem = useRef();
 
-  // Utiliza la URL de implementación que ya teníamos
+  // URL de tu base de datos en Google Sheets
   const scriptURL = 'https://script.google.com/macros/s/AKfycby4Acnk3Ai089QYo8eBLLp-DOgkwCyhm4DXzENJbf8pKX-9y-HK29YgDP25IzzRslzYdw/exec';
 
-  // 1. LEER el JSON desde Google Sheets al cargar el componente
   useEffect(() => {
     const fetchPosts = async () => {
       try {
@@ -25,7 +31,6 @@ export default function Blog() {
     fetchPosts();
   }, []);
 
-  /// 2. GUARDAR el JSON en Google Sheets cada vez que haya una modificación
   const saveToServer = async (updatedPosts) => {
     try {
       await fetch(scriptURL, {
@@ -39,28 +44,28 @@ export default function Blog() {
     }
   };
 
-  // 3. Crear publicación (Máximo 250 caracteres)
   const handleCreatePost = () => {
     if (newPostText.trim() === '' || newPostText.length > 250) return;
-    
     const newPost = {
       id: Date.now().toString(),
       text: newPostText,
-      liked: 0,
+      reactions: { love: 0, happy: 0, sad: 0, excited: 0, angry: 0, custom: 0 },
       comments: []
     };
-    
     const updatedPosts = [newPost, ...posts];
     setPosts(updatedPosts);
     setNewPostText('');
     saveToServer(updatedPosts);
   };
 
-  // 4. Reacción de corazón (Solo 0 o 1)
-  const toggleLike = (id) => {
+  const toggleReaction = (postId, reactionType) => {
     const updatedPosts = posts.map(post => {
-      if (post.id === id) {
-        return { ...post, liked: post.liked === 0 ? 1 : 0 };
+      if (post.id === postId) {
+        const currentReactions = post.reactions || { 
+          love: post.liked || 0, happy: 0, sad: 0, excited: 0, angry: 0, custom: 0 
+        };
+        const newValue = currentReactions[reactionType] === 1 ? 0 : 1;
+        return { ...post, reactions: { ...currentReactions, [reactionType]: newValue } };
       }
       return post;
     });
@@ -68,89 +73,156 @@ export default function Blog() {
     saveToServer(updatedPosts);
   };
 
-  // 5. Agregar comentario a un post (Máximo 100 caracteres)
   const handleAddComment = (postId) => {
     const commentText = commentInputs[postId];
     if (!commentText || commentText.trim() === '' || commentText.length > 100) return;
-
     const updatedPosts = posts.map(post => {
       if (post.id === postId) {
-        return { 
-          ...post, 
-          comments: [...post.comments, { id: Date.now().toString(), text: commentText }] 
-        };
+        return { ...post, comments: [...post.comments, { id: Date.now().toString(), text: commentText }] };
       }
       return post;
     });
-
     setPosts(updatedPosts);
     setCommentInputs({ ...commentInputs, [postId]: '' });
     saveToServer(updatedPosts);
   };
 
+  const handleSort = () => {
+    let _posts = [...posts];
+    const draggedItemContent = _posts.splice(dragItem.current, 1)[0];
+    _posts.splice(dragOverItem.current, 0, draggedItemContent);
+    
+    dragItem.current = null;
+    dragOverItem.current = null;
+    
+    setPosts(_posts);
+    saveToServer(_posts);
+  };
+
   if (loading) {
-    return <div className="text-center text-white mt-10 text-lg font-semibold drop-shadow-md">Cargando publicaciones...</div>;
+    return <div className="text-center text-white mt-10 text-lg font-semibold drop-shadow-md">Cargando tablero...</div>;
   }
 
   return (
-    <div className="w-full max-w-xl mx-auto flex flex-col gap-6 py-6 px-4">
+    <div className="w-full h-full flex flex-col gap-2">
       
-      {/* Caja de cristal para nueva publicación */}
-      <div className="bg-white/30 backdrop-blur-md border border-white/40 p-4 rounded-2xl shadow-xl">
-        <textarea
-          maxLength={250}
-          value={newPostText}
-          onChange={(e) => setNewPostText(e.target.value)}
-          placeholder="¿Qué estás pensando? (Se permiten emojis 😊)"
-          className="w-full bg-white/50 text-textoNormal p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-titulo resize-none"
-          rows="3"
-        />
-        <div className="flex justify-between items-center mt-2">
-          <span className="text-xs font-semibold text-textoNormal/80">{newPostText.length}/250</span>
-          <button onClick={handleCreatePost} className="bg-titulo text-white px-4 py-2 rounded-xl font-semibold shadow-lg hover:opacity-90 transition-opacity">
-            Publicar
-          </button>
-        </div>
+      {/* Botón superior para ocultar/mostrar comentarios */}
+      <div className="flex justify-end px-4 mt-2">
+        <button 
+          onClick={() => setShowAllComments(!showAllComments)}
+          className="flex items-center gap-2 bg-white/30 backdrop-blur-md border border-white/40 px-4 py-2 rounded-xl text-sm font-bold text-textoNormal shadow-lg hover:bg-white/50 transition-all z-20 relative"
+        >
+          {showAllComments ? '🙈 Ocultar Comentarios' : '💬 Mostrar Comentarios'}
+        </button>
       </div>
 
-      {/* Feed interactivo de Publicaciones */}
-      {posts.map(post => (
-        <div key={post.id} className="bg-white/20 backdrop-blur-md border border-white/30 p-5 rounded-2xl shadow-lg flex flex-col gap-3">
-          <p className="text-textoNormal text-lg break-words">{post.text}</p>
-          
-          <div className="flex items-center gap-2 border-t border-white/20 pt-2">
-            <button onClick={() => toggleLike(post.id)} className="text-2xl transition-transform hover:scale-110">
-              {post.liked === 1 ? '❤️' : '🤍'}
+      {/* Contenedor de publicaciones: 
+        flex-col (móviles) -> Vertical
+        md:flex-row (escritorio) -> Horizontal 
+      */}
+      <div className="w-full min-h-[70vh] flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-4 py-4 px-4 overflow-x-hidden md:overflow-x-auto custom-scrollbar pb-10">
+        
+        {/* Columna 1 fija: Crear nueva publicación */}
+        {/* w-full en móviles, w-80 en escritorio */}
+        <div className="w-full max-w-md md:max-w-none md:w-80 shrink-0 bg-white/30 backdrop-blur-md border border-white/40 p-4 rounded-2xl shadow-xl">
+          <h2 className="text-titulo font-bold mb-3">Nueva Lista (Post)</h2>
+          <textarea
+            maxLength={350}
+            value={newPostText}
+            onChange={(e) => setNewPostText(e.target.value)}
+            placeholder="Escribe tu publicación aquí..."
+            className="w-full bg-white/50 text-textoNormal p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-titulo resize-none"
+            rows="4"
+          />
+          <div className="flex justify-between items-center mt-2">
+            <span className="text-xs font-semibold text-textoNormal/80">{newPostText.length}/350</span>
+            <button onClick={handleCreatePost} className="bg-titulo text-white px-4 py-2 rounded-xl font-semibold shadow-lg hover:opacity-90 transition-opacity">
+              Añadir
             </button>
-            <span className="text-sm font-semibold">{post.liked}</span>
-          </div>
-
-          {/* Sección de Comentarios */}
-          <div className="flex flex-col gap-2 mt-2">
-            {post.comments.map((comment) => (
-              <div key={comment.id} className="bg-white/40 p-2 rounded-lg text-sm text-textoNormal break-words">
-                {comment.text}
-              </div>
-            ))}
-            <div className="flex gap-2 mt-1">
-              <input 
-                type="text"
-                maxLength={100}
-                placeholder="Escribe un comentario..."
-                value={commentInputs[post.id] || ''}
-                onChange={(e) => setCommentInputs({ ...commentInputs, [post.id]: e.target.value })}
-                className="flex-1 bg-white/50 text-sm p-2 rounded-xl focus:outline-none focus:ring-1 focus:ring-titulo"
-              />
-              <button onClick={() => handleAddComment(post.id)} className="bg-inicioParrafo text-white px-3 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity">
-                Enviar
-              </button>
-            </div>
-            <span className="text-xs font-semibold text-textoNormal/80 text-right">
-              {(commentInputs[post.id] || '').length}/100
-            </span>
           </div>
         </div>
-      ))}
+
+        {/* Columnas dinámicas de publicaciones */}
+        {posts.map((post, index) => {
+          const reacts = post.reactions || { love: post.liked || 0, happy: 0, sad: 0, excited: 0, angry: 0, custom: 0 };
+
+          return (
+            <div 
+              key={post.id} 
+              draggable
+              onDragStart={() => (dragItem.current = index)}
+              onDragEnter={() => (dragOverItem.current = index)}
+              onDragEnd={handleSort}
+              onDragOver={(e) => e.preventDefault()}
+              // Tarjeta adaptable: w-full max-w-md en móviles, w-80 en escritorio
+              className="w-full max-w-md md:max-w-none md:w-80 shrink-0 bg-white/20 backdrop-blur-md border border-white/30 p-4 rounded-2xl shadow-lg flex flex-col gap-3 cursor-grab active:cursor-grabbing"
+            >
+              <div className="flex justify-between items-center border-b border-white/20 pb-2 mb-1">
+                <span className="text-xs text-textoNormal/60 font-bold uppercase tracking-wider">Post ID: {post.id.slice(-4)}</span>
+                <span className="text-textoNormal/50 text-lg cursor-grab">⋮⋮</span>
+              </div>
+
+              <p className="text-textoNormal text-base break-words font-medium">{post.text}</p>
+              
+              <div className="flex flex-wrap items-center gap-2 pt-2">
+                <button onClick={() => toggleReaction(post.id, 'love')} className="flex items-center gap-1 hover:scale-110">
+                  <span className={reacts.love ? '' : 'grayscale opacity-60'}>❤️</span>
+                  <span className="text-xs font-bold text-textoNormal">{reacts.love}</span>
+                </button>
+                <button onClick={() => toggleReaction(post.id, 'happy')} className="flex items-center gap-1 hover:scale-110">
+                  <span className={reacts.happy ? '' : 'grayscale opacity-60'}>😂</span>
+                  <span className="text-xs font-bold text-textoNormal">{reacts.happy}</span>
+                </button>
+                <button onClick={() => toggleReaction(post.id, 'sad')} className="flex items-center gap-1 hover:scale-110">
+                  <span className={reacts.sad ? '' : 'grayscale opacity-60'}>😢</span>
+                  <span className="text-xs font-bold text-textoNormal">{reacts.sad}</span>
+                </button>
+                <button onClick={() => toggleReaction(post.id, 'custom')} className="flex items-center gap-1 hover:scale-110 ml-auto">
+                  <img 
+                    src="/assets/moneda1millon.gif" 
+                    alt="Custom" 
+                    className={`w-5 h-5 object-cover rounded-full shadow-sm ${reacts.custom ? 'ring-2 ring-titulo' : 'opacity-60'}`}
+                    onError={(e) => { e.target.style.display = 'none' }}
+                  />
+                  <span className="text-xs font-bold text-textoNormal">{reacts.custom}</span>
+                </button>
+              </div>
+
+              {/* Si showAllComments es verdadero, renderizamos esta sección */}
+              {showAllComments && (
+                <div className="flex flex-col gap-2 mt-2">
+                  <div className="flex flex-col gap-2 bg-white/10 p-2 rounded-xl border border-white/20 shadow-inner flex-1 overflow-y-auto max-h-60 custom-scrollbar">
+                    {post.comments.map((comment) => (
+                      <div key={comment.id} className="bg-white/60 p-2 rounded-lg shadow-sm border-l-4 border-titulo flex items-start gap-2 break-words">
+                        <span className="text-sm leading-none mt-0.5">💬</span>
+                        <p className="text-xs text-textoNormal m-0 leading-tight flex-1">{comment.text}</p>
+                      </div>
+                    ))}
+                    {post.comments.length === 0 && (
+                      <p className="text-xs text-textoNormal/60 italic text-center py-2">Sin tarjetas.</p>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-2 pt-2 border-t border-white/20">
+                    <input 
+                      type="text"
+                      maxLength={150}
+                      placeholder="Añadir tarjeta..."
+                      value={commentInputs[post.id] || ''}
+                      onChange={(e) => setCommentInputs({ ...commentInputs, [post.id]: e.target.value })}
+                      className="w-full bg-white/50 text-xs py-2 px-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-titulo placeholder-textoNormal/60"
+                    />
+                    <button onClick={() => handleAddComment(post.id)} className="bg-inicioParrafo text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:opacity-90 w-full shadow-md">
+                      Añadir
+                    </button>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
