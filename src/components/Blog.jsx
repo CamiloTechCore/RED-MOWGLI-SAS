@@ -145,7 +145,7 @@ export default function Blog() {
         <div className="w-full max-w-md md:max-w-none md:w-80 shrink-0 bg-white/30 backdrop-blur-md border border-white/40 p-4 rounded-2xl shadow-xl">
           <h2 className="text-titulo font-bold mb-3">Nueva Lista (Post)</h2>
           <textarea
-            maxLength={250}
+            maxLength={350}
             value={newPostText}
             onChange={(e) => setNewPostText(e.target.value)}
             placeholder="Escribe tu publicación aquí..."
@@ -153,7 +153,7 @@ export default function Blog() {
             rows="4"
           />
           <div className="flex justify-between items-center mt-2">
-            <span className="text-xs font-semibold text-textoNormal/80">{newPostText.length}/250</span>
+            <span className="text-xs font-semibold text-textoNormal/80">{newPostText.length}/350</span>
             <button 
               onClick={handleCreatePost} 
               disabled={postStatus === 'loading'}
@@ -231,7 +231,7 @@ export default function Blog() {
                   <div className="flex flex-col gap-2 pt-2 border-t border-white/20">
                     <input 
                       type="text"
-                      maxLength={100}
+                      maxLength={250}
                       placeholder="Añadir tarjeta..."
                       value={commentInputs[post.id] || ''}
                       onChange={(e) => setCommentInputs({ ...commentInputs, [post.id]: e.target.value })}
