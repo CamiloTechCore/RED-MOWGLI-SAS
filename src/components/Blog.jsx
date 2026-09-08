@@ -16,7 +16,7 @@ export default function Blog() {
   const dragItem = useRef();
   const dragOverItem = useRef();
 
-  const scriptURL = 'https://script.google.com/macros/s/AKfycby4Acnk3Ai089QYo8eBLLp-DOgkwCyhm4DXzENJbf8pKX-9y-HK29YgDP25IzzRslzYdw/exec';
+  const scriptURL = 'https://script.google.com/macros/s/AKfycbwKQGVx4zNOFeQ-gyByCwuw34iVQEW60wekOPHbsIY4kCnnu6Mmtg0A7VSptX6y81jghA/exec';
 
   useEffect(() => {
     const fetchPosts = async () => {
