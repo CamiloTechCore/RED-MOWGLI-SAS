@@ -13,7 +13,7 @@ export default function TransitionImage() {
   return (
     <div className="relative w-full h-72 sm:h-96 rounded-2xl overflow-hidden shadow-2xl bg-sombreado/30 backdrop-blur-sm border border-sombreado">
       <img
-        src="/assets/Imagen16.jpg"
+        src="/assets/Paisaje1.gif"
         alt="Transición 1"
         className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
           showFirst ? 'opacity-100' : 'opacity-0'

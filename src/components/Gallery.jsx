@@ -19,6 +19,8 @@ export default function Gallery() {
     'Imagen11.jpg',
     'Imagen12.jpg',
     'Imagen13.jpg',
+    'Imagen16.jpg',
+    'Imagen17.jpg',
     'Imagen18.jpg',
     'Imagen19.jpg',
     'Imagen20.jpg',
