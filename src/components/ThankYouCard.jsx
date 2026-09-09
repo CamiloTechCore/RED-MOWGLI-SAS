@@ -4,14 +4,16 @@ export default function ThankYouCard() {
   return (
     <section className="bg-white/80 backdrop-blur-md p-6 sm:p-8 rounded-2xl shadow-xl border border-sombreado">
       <h2 className="font-titulo text-titulo text-xl sm:text-2xl mb-4 text-center">
-        Dia 14 un aire de nostalgia
+        Dia 16 navio
       </h2>
       <div className="space-y-4 text-textoNormal text-sm sm:text-base leading-relaxed">
         <p className="drop-cap">
-            A medida que se da la permanencia, se van segmentando las agendas de dos almas prometidas por lo que sus ilusiones buscan. Sin embargo, a la realidad le hace sentido que la permanencia requiera de algo físico; aun así, esta alma no ha dejado de estar presente desde ese 25 de agosto, cuando se dio la primera vista a un lugar que promete ser más que solo un lugar.
+           Resulta bastante curioso cómo las cosas pueden llegar a evolucionar a tal punto que termines a punto de tomar un barco que quizá no dé marcha atrás. Y mientras estás viendo su majestuosidad en el muelle y olvidando a la persona en medio del camino, al vendedor de la calle, al perro perdido, al tipo que prepara el pescado y se cree galán, al borracho en el andén y el olor a gasolina en el aire, solo puedes pensar en qué es todo lo que puede salir mal en medio del viaje. Titanic nos dejó traumados a todos, pero creo que el miedo más grande es llegar a enamorarse en un lugar del cual no puedes escapar y donde, si las cosas salen mal, posiblemente todos puedan llegar a morir.
+
+
         </p>
         <p className="drop-cap">
-          La vida funciona de esta manera, donde sientes que todo se va apagando. Sin embargo, es diferente cuando te das cuenta de que hay algo en tu vida que está encendido permanentemente, que está en ti y no ha dejado de estarlo. Creo que eso es a lo que se refería Homero cuando decía que estar enamorado era la forma más fácil de iniciar una guerra, y se necesita de algo tan simple que tenemos todos: la necesidad de estar amando permanentemente.
+          Nunca me consideré un marino experto; le tengo miedo a la inmensidad de algo que no puedo percibir, ni ver su profundidad, ya que mi mente inferente busca estar atenta a todo y no para. Sin embargo, al ver el barco y al verte a ti... apago mi cabeza y enciendo el corazón.
         </p>
       </div>
     </section>
