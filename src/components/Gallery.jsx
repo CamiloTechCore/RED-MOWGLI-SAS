@@ -25,12 +25,12 @@ export default function Gallery() {
     'Imagen19.jpg',
     'Imagen20.jpg',
     'Imagen21.jpg',
-    'Imagen22.jpg',
-    'Imagen23.jpg',
-    'Imagen24.jpg',
-    'Imagen25.jpg',
-    'Imagen26.jpg',
-    'Imagen27.jpg',
+    'Imagen22.jpeg',
+    'Imagen23.jpeg',
+    'Imagen24.jpeg',
+    'Imagen25.jpeg',
+    'Imagen26.jpeg',
+    'Imagen27.jpeg',
     'moneda1millon.gif',
     'moneda5millones.gif'
   ];
