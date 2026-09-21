@@ -257,8 +257,8 @@ export default function Blog() {
               className={`px-6 py-3 rounded-lg text-white font-bold shadow-md transition-all ${
                 postStatus === 'loading' ? 'bg-gray-400 cursor-not-allowed animate-pulse' : 
                 postStatus === 'success' ? 'bg-green-500' : 
-                !newPostText.trim() ? 'bg-gray-400 cursor-not-allowed' :
-                'bg-blue-600 hover:bg-blue-700 active:scale-95'
+                !newPostText.trim() ? 'bg-white-200 cursor-not-allowed' :
+                'bg-pink-600 hover:bg-pink-500 active:scale-95'
               }`}
             >
               {postStatus === 'loading' ? '📤 Publicando...' : postStatus === 'success' ? '✅ ¡Publicado!' : '📤 Publicar sueño juntos'}
