@@ -1,20 +1,121 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
+
+// Componente Modal estilo Facebook
+function PostModal({ post, isOpen, onClose, onAddComment, onToggleReaction }) {
+  const [commentText, setCommentText] = useState('');
+  const reacts = post?.reactions || { love: 0, happy: 0, sad: 0, excited: 0, angry: 0, custom: 0 };
+
+  if (!isOpen || !post) return null;
+
+  const handleSubmitComment = () => {
+    if (commentText.trim()) {
+      onAddComment(post.id, commentText);
+      setCommentText('');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        {/* Header del Modal */}
+        <div className="flex justify-between items-center p-4 border-b border-gray-200">
+          <h2 className="text-xl font-bold text-gray-800">Post</h2>
+          <button 
+            onClick={onClose}
+            className="text-2xl text-gray-500 hover:text-gray-700 transition"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Contenido del Post */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          {/* Post Content */}
+          <div className="p-4 border-b border-gray-100">
+            <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: post.text }} />
+          </div>
+
+          {/* Reacciones */}
+          <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-gray-100">
+            <button onClick={() => onToggleReaction(post.id, 'love')} className="flex items-center gap-1 hover:scale-110 transition">
+              <span className={reacts.love ? '' : 'grayscale opacity-60'}>❤️</span>
+              <span className="text-sm font-bold text-gray-700">{reacts.love}</span>
+            </button>
+            <button onClick={() => onToggleReaction(post.id, 'happy')} className="flex items-center gap-1 hover:scale-110 transition">
+              <span className={reacts.happy ? '' : 'grayscale opacity-60'}>😂</span>
+              <span className="text-sm font-bold text-gray-700">{reacts.happy}</span>
+            </button>
+            <button onClick={() => onToggleReaction(post.id, 'sad')} className="flex items-center gap-1 hover:scale-110 transition">
+              <span className={reacts.sad ? '' : 'grayscale opacity-60'}>😢</span>
+              <span className="text-sm font-bold text-gray-700">{reacts.sad}</span>
+            </button>
+            <button onClick={() => onToggleReaction(post.id, 'custom')} className="flex items-center gap-1 hover:scale-110 transition ml-auto">
+              <img 
+                src="/assets/moneda1millon.gif" 
+                alt="Custom" 
+                className={`w-6 h-6 object-cover rounded-full shadow-sm ${reacts.custom ? 'ring-2 ring-blue-500' : 'opacity-60'}`}
+                onError={(e) => { e.target.style.display = 'none' }}
+              />
+              <span className="text-sm font-bold text-gray-700">{reacts.custom}</span>
+            </button>
+          </div>
+
+          {/* Comentarios */}
+          <div className="p-4 space-y-4">
+            {post.comments.length > 0 ? (
+              post.comments.map((comment) => (
+                <div key={comment.id} className="flex gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gray-300 flex-shrink-0 flex items-center justify-center">
+                    💬
+                  </div>
+                  <div className="flex-1 bg-gray-100 rounded-xl p-3">
+                    <p className="text-sm font-semibold text-gray-800">Usuario</p>
+                    <p className="text-sm text-gray-700 mt-1">{comment.text}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-center text-gray-500 italic py-4">Sin comentarios aún</p>
+            )}
+          </div>
+        </div>
+
+        {/* Input de Comentarios */}
+        <div className="p-4 border-t border-gray-200 bg-gray-50">
+          <div className="flex gap-2">
+            <input 
+              type="text"
+              maxLength={250}
+              placeholder="Escribe un comentario..."
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSubmitComment()}
+              className="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button 
+              onClick={handleSubmitComment}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full font-semibold transition"
+            >
+              📤
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Blog() {
   const [posts, setPosts] = useState([]);
   const [newPostText, setNewPostText] = useState('');
   const [commentInputs, setCommentInputs] = useState({});
   const [loading, setLoading] = useState(true);
-  
-  // Estado para mostrar u ocultar todos los comentarios
-  const [showAllComments, setShowAllComments] = useState(true);
-  
-  // NUEVO: Estados para manejar las animaciones de los botones
-  const [postStatus, setPostStatus] = useState('idle'); // Para el botón de "Nueva Lista"
-  const [commentStatus, setCommentStatus] = useState({}); // Para los botones de comentarios por ID
-
-  const dragItem = useRef();
-  const dragOverItem = useRef();
+  const [postStatus, setPostStatus] = useState('idle');
+  const [commentStatus, setCommentStatus] = useState({});
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const scriptURL = 'https://script.google.com/macros/s/AKfycbwKQGVx4zNOFeQ-gyByCwuw34iVQEW60wekOPHbsIY4kCnnu6Mmtg0A7VSptX6y81jghA/exec';
 
@@ -46,11 +147,10 @@ export default function Blog() {
     }
   };
 
-  // Función actualizada con animaciones para Crear Post
   const handleCreatePost = async () => {
-    if (newPostText.trim() === '' || newPostText.length > 250) return;
+    if (newPostText.trim() === '' || newPostText.length > 5000) return;
     
-    setPostStatus('loading'); // Inicia animación de carga
+    setPostStatus('loading');
 
     const newPost = {
       id: Date.now().toString(),
@@ -63,17 +163,17 @@ export default function Blog() {
     setPosts(updatedPosts);
     setNewPostText('');
     
-    await saveToServer(updatedPosts); // Espera a que se guarde en Sheets
+    await saveToServer(updatedPosts);
     
-    setPostStatus('success'); // Muestra éxito
-    setTimeout(() => setPostStatus('idle'), 2000); // Restaura tras 2 segundos
+    setPostStatus('success');
+    setTimeout(() => setPostStatus('idle'), 2000);
   };
 
   const toggleReaction = (postId, reactionType) => {
     const updatedPosts = posts.map(post => {
       if (post.id === postId) {
         const currentReactions = post.reactions || { 
-          love: post.liked || 0, happy: 0, sad: 0, excited: 0, angry: 0, custom: 0 
+          love: 0, happy: 0, sad: 0, excited: 0, angry: 0, custom: 0 
         };
         const newValue = currentReactions[reactionType] === 1 ? 0 : 1;
         return { ...post, reactions: { ...currentReactions, [reactionType]: newValue } };
@@ -82,15 +182,15 @@ export default function Blog() {
     });
     setPosts(updatedPosts);
     saveToServer(updatedPosts);
+    
+    // Actualizar post seleccionado si está abierto en el modal
+    if (selectedPost && selectedPost.id === postId) {
+      setSelectedPost(updatedPosts.find(p => p.id === postId));
+    }
   };
 
-  // Función actualizada con animaciones para Agregar Comentario
-  const handleAddComment = async (postId) => {
-    const commentText = commentInputs[postId];
-    if (!commentText || commentText.trim() === '' || commentText.length > 100) return;
-
-    // Inicia animación solo en el botón de este post específico
-    setCommentStatus(prev => ({ ...prev, [postId]: 'loading' }));
+  const handleAddComment = async (postId, commentText) => {
+    if (!commentText || commentText.trim() === '' || commentText.length > 250) return;
 
     const updatedPosts = posts.map(post => {
       if (post.id === postId) {
@@ -100,164 +200,144 @@ export default function Blog() {
     });
     
     setPosts(updatedPosts);
-    setCommentInputs({ ...commentInputs, [postId]: '' });
+    await saveToServer(updatedPosts);
     
-    await saveToServer(updatedPosts); // Espera a que se guarde
-
-    // Muestra éxito y restaura
-    setCommentStatus(prev => ({ ...prev, [postId]: 'success' }));
-    setTimeout(() => {
-      setCommentStatus(prev => ({ ...prev, [postId]: 'idle' }));
-    }, 2000);
-  };
-
-  const handleSort = () => {
-    let _posts = [...posts];
-    const draggedItemContent = _posts.splice(dragItem.current, 1)[0];
-    _posts.splice(dragOverItem.current, 0, draggedItemContent);
-    
-    dragItem.current = null;
-    dragOverItem.current = null;
-    
-    setPosts(_posts);
-    saveToServer(_posts);
+    // Actualizar post seleccionado si está abierto en el modal
+    if (selectedPost && selectedPost.id === postId) {
+      setSelectedPost(updatedPosts.find(p => p.id === postId));
+    }
   };
 
   if (loading) {
-    return <div className="text-center text-white mt-10 text-lg font-semibold drop-shadow-md">Cargando tablero...</div>;
+    return <div className="text-center text-gray-800 mt-10 text-lg font-semibold drop-shadow-md">Cargando tablero...</div>;
   }
 
   return (
-    <div className="w-full h-full flex flex-col gap-2">
-      
-      <div className="flex justify-end px-4 mt-2">
-        <button 
-          onClick={() => setShowAllComments(!showAllComments)}
-          className="flex items-center gap-2 bg-white/30 backdrop-blur-md border border-white/40 px-4 py-2 rounded-xl text-sm font-bold text-textoNormal shadow-lg hover:bg-white/50 transition-all z-20 relative"
-        >
-          {showAllComments ? '🙈 Ocultar Comentarios' : '💬 Mostrar Comentarios'}
-        </button>
-      </div>
-
-      <div className="w-full min-h-[70vh] flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-4 py-4 px-4 overflow-x-hidden md:overflow-x-auto custom-scrollbar pb-10">
+    <div className="w-full min-h-screen bg-gradient-to-br from-Pink-50 to-Orange-100 p-6">
+      <div className="max-w-7xl mx-auto">
         
-        {/* Columna 1 fija: Crear nueva publicación */}
-        <div className="w-full max-w-md md:max-w-none md:w-80 shrink-0 bg-white/30 backdrop-blur-md border border-white/40 p-4 rounded-2xl shadow-xl">
-          <h2 className="text-titulo font-bold mb-3">Nueva Lista (Post)</h2>
-          <textarea
-            maxLength={350}
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">Pensamientos en conjunto</h1>
+          <p className="text-gray-600">Comparte tus pensamientos con tu amorcito</p>
+        </div>
+
+        {/* Editor de Nueva Nota */}
+        <div className="mb-8 bg-white rounded-2xl shadow-lg p-6 border-2 border-white-200">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">✍️ Crear un Sueño</h2>
+          
+          {/* Contador de caracteres */}
+          <div className="mb-2 text-right">
+            <span className="text-sm text-gray-600 font-semibold">{newPostText.replace(/<[^>]*>/g, '').length}/5000</span>
+          </div>
+
+          {/* Editor Quill */}
+          <ReactQuill 
             value={newPostText}
-            onChange={(e) => setNewPostText(e.target.value)}
-            placeholder="Escribe tu publicación aquí..."
-            className="w-full bg-white/50 text-textoNormal p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-titulo resize-none"
-            rows="4"
+            onChange={setNewPostText}
+            placeholder="Escribe tu nota aquí... Puedes usar negrita, cursiva, listas y más"
+            modules={{
+              toolbar: [
+                [{ 'header': [1, 2, 3, false] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                [{ 'color': [] }, { 'background': [] }],
+                [{ 'align': [] }],
+                ['clean']
+              ]
+            }}
+            className="bg-gray-50 rounded-lg text-gray-800 mb-4"
           />
-          <div className="flex justify-between items-center mt-2">
-            <span className="text-xs font-semibold text-textoNormal/80">{newPostText.length}/350</span>
+
+          {/* Botón */}
+          <div className="flex justify-end">
             <button 
               onClick={handleCreatePost} 
-              disabled={postStatus === 'loading'}
-              // Lógica de estilos y colores dependiendo del estado
-              className={`px-4 py-2 rounded-xl text-sm font-semibold text-white shadow-md transition-all ${
+              disabled={postStatus === 'loading' || !newPostText.trim()}
+              className={`px-6 py-3 rounded-lg text-white font-bold shadow-md transition-all ${
                 postStatus === 'loading' ? 'bg-gray-400 cursor-not-allowed animate-pulse' : 
-                postStatus === 'success' ? 'bg-green-500' : 'bg-titulo hover:opacity-90'
+                postStatus === 'success' ? 'bg-green-500' : 
+                !newPostText.trim() ? 'bg-gray-400 cursor-not-allowed' :
+                'bg-blue-600 hover:bg-blue-700 active:scale-95'
               }`}
             >
-              {postStatus === 'loading' ? 'Publicando...' : postStatus === 'success' ? '¡Enviado!' : 'Añadir'}
+              {postStatus === 'loading' ? '📤 Publicando...' : postStatus === 'success' ? '✅ ¡Publicado!' : '📤 Publicar sueño juntos'}
             </button>
           </div>
         </div>
 
-        {/* Columnas dinámicas de publicaciones */}
-        {posts.map((post, index) => {
-          const reacts = post.reactions || { love: post.liked || 0, happy: 0, sad: 0, excited: 0, angry: 0, custom: 0 };
-          const currentStatus = commentStatus[post.id] || 'idle'; // Lee el estado de esta tarjeta en particular
+        {/* Grid 3x3 de Notas */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {posts.map((post) => {
+            const reacts = post.reactions || { love: 0, happy: 0, sad: 0, excited: 0, angry: 0, custom: 0 };
+            
+            return (
+              <div 
+                key={post.id}
+                onClick={() => {
+                  setSelectedPost(post);
+                  setIsModalOpen(true);
+                }}
+                className="h-96 bg-yellow-100 rounded-lg shadow-xl p-5 cursor-pointer transform hover:scale-105 hover:shadow-2xl transition-all duration-300 border-2 border-white-300 hover:border-red-400 relative overflow-hidden"
+                style={{
+                  backgroundImage: 'linear-gradient(135deg, #f59be1 0%, #fffeff 100%)',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.2), inset -2px -2px 5px rgba(0,0,0,0.1)'
+                }}
+              >
+                {/* Efecto de papel arrugado */}
+                <div className="absolute top-0 right-0 w-20 h-20 bg-yellow-200/30 rounded-full blur-3xl"></div>
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-orange-200/20 rounded-full blur-3xl"></div>
 
-          return (
-            <div 
-              key={post.id} 
-              draggable
-              onDragStart={() => (dragItem.current = index)}
-              onDragEnter={() => (dragOverItem.current = index)}
-              onDragEnd={handleSort}
-              onDragOver={(e) => e.preventDefault()}
-              className="w-full max-w-md md:max-w-none md:w-80 shrink-0 bg-white/20 backdrop-blur-md border border-white/30 p-4 rounded-2xl shadow-lg flex flex-col gap-3 cursor-grab active:cursor-grabbing"
-            >
-              <div className="flex justify-between items-center border-b border-white/20 pb-2 mb-1">
-                <span className="text-xs text-textoNormal/60 font-bold uppercase tracking-wider">Post ID: {post.id.slice(-4)}</span>
-                <span className="text-textoNormal/50 text-lg cursor-grab">⋮⋮</span>
-              </div>
-
-              <p className="text-textoNormal text-base break-words font-medium">{post.text}</p>
-              
-              <div className="flex flex-wrap items-center gap-2 pt-2">
-                <button onClick={() => toggleReaction(post.id, 'love')} className="flex items-center gap-1 hover:scale-110">
-                  <span className={reacts.love ? '' : 'grayscale opacity-60'}>❤️</span>
-                  <span className="text-xs font-bold text-textoNormal">{reacts.love}</span>
-                </button>
-                <button onClick={() => toggleReaction(post.id, 'happy')} className="flex items-center gap-1 hover:scale-110">
-                  <span className={reacts.happy ? '' : 'grayscale opacity-60'}>😂</span>
-                  <span className="text-xs font-bold text-textoNormal">{reacts.happy}</span>
-                </button>
-                <button onClick={() => toggleReaction(post.id, 'sad')} className="flex items-center gap-1 hover:scale-110">
-                  <span className={reacts.sad ? '' : 'grayscale opacity-60'}>😢</span>
-                  <span className="text-xs font-bold text-textoNormal">{reacts.sad}</span>
-                </button>
-                <button onClick={() => toggleReaction(post.id, 'custom')} className="flex items-center gap-1 hover:scale-110 ml-auto">
-                  <img 
-                    src="/assets/moneda1millon.gif" 
-                    alt="Custom" 
-                    className={`w-5 h-5 object-cover rounded-full shadow-sm ${reacts.custom ? 'ring-2 ring-titulo' : 'opacity-60'}`}
-                    onError={(e) => { e.target.style.display = 'none' }}
-                  />
-                  <span className="text-xs font-bold text-textoNormal">{reacts.custom}</span>
-                </button>
-              </div>
-
-              {showAllComments && (
-                <div className="flex flex-col gap-2 mt-2">
-                  <div className="flex flex-col gap-2 bg-white/10 p-2 rounded-xl border border-white/20 shadow-inner flex-1 overflow-y-auto max-h-60 custom-scrollbar">
-                    {post.comments.map((comment) => (
-                      <div key={comment.id} className="bg-white/60 p-2 rounded-lg shadow-sm border-l-4 border-titulo flex items-start gap-2 break-words">
-                        <span className="text-sm leading-none mt-0.5">💬</span>
-                        <p className="text-xs text-textoNormal m-0 leading-tight flex-1">{comment.text}</p>
-                      </div>
-                    ))}
-                    {post.comments.length === 0 && (
-                      <p className="text-xs text-textoNormal/60 italic text-center py-2">Sin tarjetas.</p>
-                    )}
+                {/* Contenido */}
+                <div className="relative z-10 h-full flex flex-col">
+                  {/* Header con ID */}
+                  <div className="text-xs font-bold text-gray-600 opacity-60 mb-2 uppercase tracking-wider">
+                    ID: {post.id.slice(-4)}
                   </div>
 
-                  <div className="flex flex-col gap-2 pt-2 border-t border-white/20">
-                    <input 
-                      type="text"
-                      maxLength={250}
-                      placeholder="Añadir tarjeta..."
-                      value={commentInputs[post.id] || ''}
-                      onChange={(e) => setCommentInputs({ ...commentInputs, [post.id]: e.target.value })}
-                      className="w-full bg-white/50 text-xs py-2 px-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-titulo placeholder-textoNormal/60"
-                    />
-                    
-                    {/* Botón de añadir comentario animado */}
-                    <button 
-                      onClick={() => handleAddComment(post.id)} 
-                      disabled={currentStatus === 'loading'}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold text-white w-full shadow-md transition-all duration-300 ${
-                        currentStatus === 'loading' ? 'bg-gray-400 cursor-not-allowed animate-pulse' :
-                        currentStatus === 'success' ? 'bg-green-500' : 'bg-inicioParrafo hover:opacity-90'
-                      }`}
-                    >
-                      {currentStatus === 'loading' ? 'Comentando...' : 
-                       currentStatus === 'success' ? 'Comentario enviado' : 'Añadir'}
-                    </button>
+                  {/* Texto del post */}
+                  <div className="flex-1 overflow-hidden mb-3">
+                    <div className="prose prose-sm max-w-none text-gray-800 line-clamp-6" dangerouslySetInnerHTML={{ __html: post.text }} />
+                  </div>
+
+                  {/* Reacciones minimizadas */}
+                  <div className="flex flex-wrap gap-2 pt-2 border-t-2 border-yellow-300">
+                    {reacts.love > 0 && <span title={`${reacts.love} ❤️`}>❤️ {reacts.love}</span>}
+                    {reacts.happy > 0 && <span title={`${reacts.happy} 😂`}>😂 {reacts.happy}</span>}
+                    {reacts.sad > 0 && <span title={`${reacts.sad} 😢`}>😢 {reacts.sad}</span>}
+                    {reacts.custom > 0 && <span title={`${reacts.custom} 💰`}>💰 {reacts.custom}</span>}
+                    <span className="ml-auto text-xs text-gray-600">
+                      💬 {post.comments.length}
+                    </span>
+                  </div>
+
+                  {/* Hint al pasar el mouse */}
+                  <div className="absolute bottom-2 right-2 text-xs text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                    👆 Haz clic para ver más
                   </div>
                 </div>
-              )}
+              </div>
+            );
+          })}
+        </div>
 
-            </div>
-          );
-        })}
+        {/* Mensaje cuando no hay posts */}
+        {posts.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-3xl mb-2">📭</p>
+            <p className="text-gray-600 text-lg">No hay notas aún. ¡Crea la primera!</p>
+          </div>
+        )}
       </div>
+
+      {/* Modal de Post */}
+      <PostModal 
+        post={selectedPost}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onAddComment={handleAddComment}
+        onToggleReaction={toggleReaction}
+      />
     </div>
   );
 }
