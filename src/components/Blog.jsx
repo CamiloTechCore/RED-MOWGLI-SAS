@@ -257,7 +257,7 @@ export default function Blog() {
               className={`px-6 py-3 rounded-lg text-white font-bold shadow-md transition-all ${
                 postStatus === 'loading' ? 'bg-gray-400 cursor-not-allowed animate-pulse' : 
                 postStatus === 'success' ? 'bg-green-500' : 
-                !newPostText.trim() ? 'bg-white-200 cursor-not-allowed' :
+                !newPostText.trim() ? 'bg-gray-400 cursor-not-allowed' :
                 'bg-pink-600 hover:bg-pink-500 active:scale-95'
               }`}
             >
