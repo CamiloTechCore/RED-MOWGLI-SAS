@@ -1,10 +1,12 @@
 import React from 'react';
+import logo from '../LOGO.png';
 
 export default function Navbar({ currentTab, setCurrentTab }) {
   return (
     <nav className="sticky top-0 z-50 w-full bg-white/20 backdrop-blur-md border-b border-white/30 shadow-lg transition-all duration-300">
       <div className="max-w-3xl mx-auto px-4 py-3 flex justify-between items-center">
         <h1 className="font-titulo text-titulo text-lg sm:text-xl tracking-wide drop-shadow-md">
+          <img src={logo} alt="Logo" className="inline-block w-10 h-6 mr-1" />
           RED MOWGLI SAS
         </h1>
         <div className="flex space-x-2 sm:space-x-4">

@@ -32,7 +32,16 @@ export default function Gallery() {
     'Imagen26.jpeg',
     'Imagen27.jpeg',
     'moneda1millon.gif',
-    'moneda5millones.gif'
+    'moneda5millones.gif',
+    //'Video01.mp4',
+    'Imagen28.jpeg',
+    'Imagen29.jpeg',
+    'Imagen30.jpeg',
+    'Imagen31.jpeg',
+    'Imagen32.jpeg',
+    'Imagen33.jpeg',
+    'Imagen34.jpeg',
+
   ];
 
   // Función para cerrar el modal
